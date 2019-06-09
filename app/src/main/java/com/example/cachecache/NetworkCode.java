@@ -4,7 +4,7 @@ public enum NetworkCode {
     MCC("mcc"),
     MNC("mnc");
 
-    private String toString;
+    private final String toString;
 
     NetworkCode(String toString) {
         this.toString = toString;

@@ -5,7 +5,7 @@ public enum Radio {
     WCDMA("wcdma"),
     LTE("lte");
 
-    private String toString;
+    private final String toString;
 
     Radio(String toString) {
         this.toString = toString;

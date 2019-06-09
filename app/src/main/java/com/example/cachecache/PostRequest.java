@@ -13,9 +13,9 @@ import java.net.HttpURLConnection;
 import java.net.URL;
 import java.util.concurrent.Callable;
 
-public class PostRequest implements Callable<JSONObject> {
-    private String urlString;
-    private JSONObject request;
+class PostRequest implements Callable<JSONObject> {
+    private final String urlString;
+    private final JSONObject request;
     private JSONObject response;
 
     PostRequest(String url, JSONObject request) {

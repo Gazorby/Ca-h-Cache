@@ -8,6 +8,7 @@ import android.net.NetworkInfo;
 import android.net.wifi.WifiInfo;
 import android.net.wifi.WifiManager;
 import android.os.Bundle;
+import android.os.Handler;
 import android.telephony.CellIdentityGsm;
 import android.telephony.CellIdentityLte;
 import android.telephony.CellIdentityWcdma;
@@ -16,7 +17,6 @@ import android.telephony.CellInfoGsm;
 import android.telephony.CellInfoLte;
 import android.telephony.CellInfoWcdma;
 import android.telephony.TelephonyManager;
-import android.view.View;
 
 import androidx.appcompat.app.AppCompatActivity;
 import androidx.core.app.ActivityCompat;
@@ -33,12 +33,16 @@ import java.util.concurrent.Future;
 
 public class MainActivity extends AppCompatActivity {
 
-    // Codes used to ask permissions
-    static final int PERM_GSM_CODE = 1;
-    static final int PERM_NETWORK_CODE = 2;
-    static final int PERM_INTERNET_CODE = 3;
+    private int mInterval = 10000; // 10 seconds by default, can be changed later
+    private Handler mHandler;
+    private JSONObject location;
 
-    static final String OpenCellIdToken = "ff4908e586f1b4";
+    // Codes used to ask permissions
+    private static final int PERM_GSM_CODE = 1;
+    private static final int PERM_NETWORK_CODE = 2;
+    private static final int PERM_INTERNET_CODE = 3;
+
+    private static final String OpenCellIdToken = "ff4908e586f1b4";
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
@@ -49,6 +53,8 @@ public class MainActivity extends AppCompatActivity {
                     new String[]{Manifest.permission.INTERNET},
                     PERM_INTERNET_CODE);
         }
+        mHandler = new Handler();
+        startRepeatingTask();
     }
 
     /**
@@ -56,7 +62,7 @@ public class MainActivity extends AppCompatActivity {
      * @param freq, the signal frequency in decibels
      * @return the wifi channel corresponding to the frequency
      */
-    public int freqToChannel(int freq) {
+    private int freqToChannel(int freq) {
         if (freq == 2484)
             return 14;
 
@@ -71,7 +77,7 @@ public class MainActivity extends AppCompatActivity {
      * @param context, Application context
      * @return, WifiInfo object
      */
-    public WifiInfo getWifiInfo(Context context) {
+    private WifiInfo getWifiInfo(Context context) {
         // If net state permission isn't granted, ask user
         if (checkSelfPermission(Manifest.permission.ACCESS_NETWORK_STATE) != PackageManager.PERMISSION_GRANTED) {
             ActivityCompat.requestPermissions(this,
@@ -106,7 +112,7 @@ public class MainActivity extends AppCompatActivity {
      * @return A JSONArray object containing JSONObjects that describe all connected cells of the given radio
      * @throws JSONException
      */
-    public JSONArray getCellIdArray(Radio radio) throws JSONException {
+    private JSONArray getCellIdArray(Radio radio) throws JSONException {
         // Get list of all cell info the device is registered on
         final TelephonyManager telephony = (TelephonyManager) getSystemService(TELEPHONY_SERVICE);
         JSONArray cellArr = new JSONArray();
@@ -150,7 +156,7 @@ public class MainActivity extends AppCompatActivity {
      * @param code, mcc or mnc
      * @return the corresponding code
      */
-    public Integer getNetworkId(Radio radio, NetworkCode code) {
+    private Integer getNetworkId(Radio radio, NetworkCode code) {
         // Get list of all cell info the device is registered on
         final TelephonyManager telephony = (TelephonyManager) getSystemService(TELEPHONY_SERVICE);
         // If location permission isn't granted, ask user
@@ -194,13 +200,12 @@ public class MainActivity extends AppCompatActivity {
     }
 
     /**
-     * Get smatrphone location based on cells and wifi networks
-     * @param view
+     * Get smartphone location based on cells and wifi networks
      * @throws JSONException
      * @throws ExecutionException
      * @throws InterruptedException
      */
-    public void getLocation(View view) throws JSONException, ExecutionException, InterruptedException {
+    private void getLocation() throws JSONException, ExecutionException, InterruptedException {
         Radio radio = Radio.GSM;
         Context context = getApplicationContext();
         WifiInfo wifiInfos = getWifiInfo(context);
@@ -231,7 +236,48 @@ public class MainActivity extends AppCompatActivity {
         PostRequest postRequest = new PostRequest(url, request);
         ExecutorService service =  Executors.newSingleThreadExecutor();
         Future<JSONObject> future = service.submit(postRequest);
-        JSONObject response = future.get();
-        System.out.println(response);
+        location = future.get();
+        System.out.println(location);
+    }
+
+    /**
+     * Update location periodically
+     */
+    private Runnable mStatusChecker = new Runnable() {
+        @Override
+        public void run() {
+            try {
+                getLocation(); // Interval can be changed in this function
+            } catch (InterruptedException | ExecutionException | JSONException e) {
+                e.printStackTrace();
+            } finally {
+                // 100% guarantee that this always happens, even if
+                // your update method throws an exception
+                mHandler.postDelayed(mStatusChecker, mInterval);
+            }
+        }
+    };
+
+    /**
+     * Start to run task periodically
+     */
+    private void startRepeatingTask() {
+        mStatusChecker.run();
+    }
+
+    /**
+     * Stop to run task periodically
+     */
+    private void stopRepeatingTask() {
+        mHandler.removeCallbacks(mStatusChecker);
+    }
+
+    @Override
+    /*
+      On destroy, stop running task
+     */
+    public void onDestroy() {
+        super.onDestroy();
+        stopRepeatingTask();
     }
 }
