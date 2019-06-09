@@ -1,0 +1,40 @@
+{
+  "project_info": {
+    "project_number": "450707412355",
+    "firebase_url": "https://cashcache-fb320.firebaseio.com",
+    "project_id": "cashcache-fb320",
+    "storage_bucket": "cashcache-fb320.appspot.com"
+  },
+  "client": [
+    {
+      "client_info": {
+        "mobilesdk_app_id": "1:450707412355:android:8e9d89440f194c76",
+        "android_client_info": {
+          "package_name": "com.mimi.cachecache"
+        }
+      },
+      "oauth_client": [
+        {
+          "client_id": "450707412355-8mnlmifi0slookqbtmp457cb8a5ngsuu.apps.googleusercontent.com",
+          "client_type": 3
+        }
+      ],
+      "api_key": [
+        {
+          "current_key": "AIzaSyCUZjxRE-l3H9vNDV9aN56W_SFYKoK7eNc"
+        }
+      ],
+      "services": {
+        "appinvite_service": {
+          "other_platform_oauth_client": [
+            {
+              "client_id": "450707412355-8mnlmifi0slookqbtmp457cb8a5ngsuu.apps.googleusercontent.com",
+              "client_type": 3
+            }
+          ]
+        }
+      }
+    }
+  ],
+  "configuration_version": "1"
+}

@@ -1,4 +1,8 @@
-package com.example.cachecache;
+package com.mimi.cachecache;
+
+import androidx.annotation.NonNull;
+import androidx.appcompat.app.AppCompatActivity;
+import androidx.core.app.ActivityCompat;
 
 import android.Manifest;
 import android.content.Context;
@@ -17,44 +21,123 @@ import android.telephony.CellInfoGsm;
 import android.telephony.CellInfoLte;
 import android.telephony.CellInfoWcdma;
 import android.telephony.TelephonyManager;
+import android.util.Log;
+import android.view.View;
 
-import androidx.appcompat.app.AppCompatActivity;
-import androidx.core.app.ActivityCompat;
+import com.google.android.gms.tasks.OnFailureListener;
+import com.google.android.gms.tasks.OnSuccessListener;
+import com.google.firebase.firestore.FirebaseFirestore;
 
 import org.json.JSONArray;
 import org.json.JSONException;
 import org.json.JSONObject;
 
 import java.util.List;
+import java.util.Map;
+import java.util.UUID;
 import java.util.concurrent.ExecutionException;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
 import java.util.concurrent.Future;
 
-public class MainActivity extends AppCompatActivity {
-
+public class HiddenUserActivity extends AppCompatActivity {
     private int mInterval = 10000; // 10 seconds by default, can be changed later
     private Handler mHandler;
-    private JSONObject location;
-
+    private SessionManager session;
     // Codes used to ask permissions
     private static final int PERM_GSM_CODE = 1;
     private static final int PERM_NETWORK_CODE = 2;
     private static final int PERM_INTERNET_CODE = 3;
 
     private static final String OpenCellIdToken = "ff4908e586f1b4";
+    private final FirebaseFirestore db = FirebaseFirestore.getInstance();
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
-        setContentView(R.layout.activity_main);
+        setContentView(R.layout.activity_hide);
         if (checkSelfPermission(Manifest.permission.INTERNET) != PackageManager.PERMISSION_GRANTED) {
             ActivityCompat.requestPermissions(this,
                     new String[]{Manifest.permission.INTERNET},
                     PERM_INTERNET_CODE);
         }
+        // If net state permission isn't granted, ask user
+        if (checkSelfPermission(Manifest.permission.ACCESS_NETWORK_STATE) != PackageManager.PERMISSION_GRANTED) {
+            ActivityCompat.requestPermissions(this,
+                    new String[]{Manifest.permission.ACCESS_NETWORK_STATE},
+                    PERM_NETWORK_CODE);
+        }
+
+        if (checkSelfPermission(Manifest.permission.ACCESS_WIFI_STATE) != PackageManager.PERMISSION_GRANTED) {
+            ActivityCompat.requestPermissions(this,
+                    new String[]{Manifest.permission.ACCESS_WIFI_STATE},
+                    PERM_NETWORK_CODE);
+        }
+        if (checkSelfPermission(Manifest.permission.ACCESS_COARSE_LOCATION) != PackageManager.PERMISSION_GRANTED) {
+            ActivityCompat.requestPermissions(this,
+                    new String[]{Manifest.permission.ACCESS_COARSE_LOCATION},
+                    PERM_GSM_CODE);
+        }
+
+        session = new SessionManager(getApplicationContext());
+        session.createLoginSession(UserCategory.HIDDEN.toString());
+    }
+
+    /**
+     * Update location periodically
+     */
+    private Runnable updateLocation = new Runnable() {
+        @Override
+        public void run() {
+            try {
+                db.collection("User")
+                        .document(session.getUserDetails().get("userId"))
+                        .set(getLocation())
+                        .addOnSuccessListener(new OnSuccessListener<Void>() {
+                    @Override
+                    public void onSuccess(Void aVoid) {
+                        Log.i("LOCATION UPDATE", session.getUserDetails().get("userId"));
+                    }
+                })
+                        .addOnFailureListener(new OnFailureListener() {
+                            @Override
+                            public void onFailure(@NonNull Exception e) {
+                                Log.w("WARNING", "Error updating location for id " +
+                                        session.getUserDetails().get("userId"), e);
+                            }
+                        });
+            } catch (InterruptedException | ExecutionException | JSONException e) {
+                e.printStackTrace();
+            } finally {
+                // 100% guarantee that this always happens, even if
+                // your update method throws an exception
+                mHandler.postDelayed(updateLocation, mInterval);
+            }
+        }
+    };
+
+    /**
+     * Start to run task periodically
+     */
+    private void startUpdatingLocation() {
+        updateLocation.run();
+    }
+
+    /**
+     * Stop to run task periodically
+     */
+    private void stopUpdatingLocation() {
+        mHandler.removeCallbacks(updateLocation);
+    }
+
+    public void onDestroy() {
+        super.onDestroy();
+        stopUpdatingLocation();
+    }
+
+    public void start(View view) {
         mHandler = new Handler();
-        startRepeatingTask();
+        startUpdatingLocation();
     }
 
     /**
@@ -78,19 +161,6 @@ public class MainActivity extends AppCompatActivity {
      * @return, WifiInfo object
      */
     private WifiInfo getWifiInfo(Context context) {
-        // If net state permission isn't granted, ask user
-        if (checkSelfPermission(Manifest.permission.ACCESS_NETWORK_STATE) != PackageManager.PERMISSION_GRANTED) {
-            ActivityCompat.requestPermissions(this,
-                    new String[]{Manifest.permission.ACCESS_NETWORK_STATE},
-                    PERM_NETWORK_CODE);
-        }
-
-        if (checkSelfPermission(Manifest.permission.ACCESS_WIFI_STATE) != PackageManager.PERMISSION_GRANTED) {
-            ActivityCompat.requestPermissions(this,
-                    new String[]{Manifest.permission.ACCESS_WIFI_STATE},
-                    PERM_NETWORK_CODE);
-        }
-
         ConnectivityManager cm = (ConnectivityManager) context.getSystemService(Context.CONNECTIVITY_SERVICE);
         NetworkInfo networkInfo = cm.getActiveNetworkInfo();
 
@@ -117,11 +187,6 @@ public class MainActivity extends AppCompatActivity {
         final TelephonyManager telephony = (TelephonyManager) getSystemService(TELEPHONY_SERVICE);
         JSONArray cellArr = new JSONArray();
 
-        if (checkSelfPermission(Manifest.permission.ACCESS_COARSE_LOCATION) != PackageManager.PERMISSION_GRANTED) {
-            ActivityCompat.requestPermissions(this,
-                    new String[]{Manifest.permission.ACCESS_COARSE_LOCATION},
-                    PERM_GSM_CODE);
-        }
 
         List<CellInfo> cellsList = telephony.getAllCellInfo();
         if (!cellsList.isEmpty()) {
@@ -167,12 +232,11 @@ public class MainActivity extends AppCompatActivity {
         }
 
         CellInfo cell = telephony.getAllCellInfo().get(0);
-        JSONObject cellID = new JSONObject();
         if (cell instanceof CellInfoGsm && radio.equals(Radio.GSM)) {
             CellIdentityGsm cellIdentity = ((CellInfoGsm) cell).getCellIdentity();
 
             if (code.equals(NetworkCode.MCC)) {
-                    return cellIdentity.getMcc();
+                return cellIdentity.getMcc();
             }
             else {
                 return cellIdentity.getMnc();
@@ -205,7 +269,7 @@ public class MainActivity extends AppCompatActivity {
      * @throws ExecutionException
      * @throws InterruptedException
      */
-    private void getLocation() throws JSONException, ExecutionException, InterruptedException {
+    private Map getLocation() throws JSONException, ExecutionException, InterruptedException {
         Radio radio = Radio.GSM;
         Context context = getApplicationContext();
         WifiInfo wifiInfos = getWifiInfo(context);
@@ -236,48 +300,6 @@ public class MainActivity extends AppCompatActivity {
         PostRequest postRequest = new PostRequest(url, request);
         ExecutorService service =  Executors.newSingleThreadExecutor();
         Future<JSONObject> future = service.submit(postRequest);
-        location = future.get();
-        System.out.println(location);
-    }
-
-    /**
-     * Update location periodically
-     */
-    private Runnable mStatusChecker = new Runnable() {
-        @Override
-        public void run() {
-            try {
-                getLocation(); // Interval can be changed in this function
-            } catch (InterruptedException | ExecutionException | JSONException e) {
-                e.printStackTrace();
-            } finally {
-                // 100% guarantee that this always happens, even if
-                // your update method throws an exception
-                mHandler.postDelayed(mStatusChecker, mInterval);
-            }
-        }
-    };
-
-    /**
-     * Start to run task periodically
-     */
-    private void startRepeatingTask() {
-        mStatusChecker.run();
-    }
-
-    /**
-     * Stop to run task periodically
-     */
-    private void stopRepeatingTask() {
-        mHandler.removeCallbacks(mStatusChecker);
-    }
-
-    @Override
-    /*
-      On destroy, stop running task
-     */
-    public void onDestroy() {
-        super.onDestroy();
-        stopRepeatingTask();
+        return PostRequest.jsonToMap(future.get());
     }
 }

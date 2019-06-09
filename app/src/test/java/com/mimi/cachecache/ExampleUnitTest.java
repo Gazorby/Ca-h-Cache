@@ -1,4 +1,4 @@
-package com.example.cachecache;
+package com.mimi.cachecache;
 
 import org.junit.Test;
 

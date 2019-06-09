@@ -1,3 +1,8 @@
 <resources>
     <string name="app_name">CacheCache</string>
+    <string name="se_cacher">Se cacher</string>
+    <string name="chercher">Chercher</string>
+    <string name="comencer">Comencer !</string>
+    <string name="ok">OK</string>
+    <string name="hideSmallExplanation">Entrez le numéro de la personne qui vous cherche :</string>
 </resources>

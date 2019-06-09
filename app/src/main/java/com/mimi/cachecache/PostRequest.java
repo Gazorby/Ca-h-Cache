@@ -1,6 +1,8 @@
-package com.example.cachecache;
+package com.mimi.cachecache;
 
 import android.util.Log;
+
+import com.google.gson.Gson;
 
 import org.json.JSONException;
 import org.json.JSONObject;
@@ -11,6 +13,8 @@ import java.io.IOException;
 import java.io.InputStreamReader;
 import java.net.HttpURLConnection;
 import java.net.URL;
+import java.util.HashMap;
+import java.util.Map;
 import java.util.concurrent.Callable;
 
 class PostRequest implements Callable<JSONObject> {
@@ -48,6 +52,10 @@ class PostRequest implements Callable<JSONObject> {
             e.printStackTrace();
         }
         return response;
+    }
+
+    public static Map jsonToMap(JSONObject jsonObject) {
+        return new Gson().fromJson(jsonObject.toString(), HashMap.class);
     }
 
     private void readResponse(HttpURLConnection conn) throws IOException, JSONException {
