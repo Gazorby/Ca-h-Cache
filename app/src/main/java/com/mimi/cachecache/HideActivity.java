@@ -23,6 +23,7 @@ import android.telephony.CellInfoWcdma;
 import android.telephony.TelephonyManager;
 import android.util.Log;
 import android.view.View;
+import android.widget.TextView;
 
 import com.google.android.gms.tasks.OnFailureListener;
 import com.google.android.gms.tasks.OnSuccessListener;
@@ -32,18 +33,20 @@ import org.json.JSONArray;
 import org.json.JSONException;
 import org.json.JSONObject;
 
+import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
-import java.util.UUID;
+import java.util.Objects;
 import java.util.concurrent.ExecutionException;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
 import java.util.concurrent.Future;
 
-public class HiddenUserActivity extends AppCompatActivity {
+public class HideActivity extends AppCompatActivity {
     private int mInterval = 10000; // 10 seconds by default, can be changed later
     private Handler mHandler;
     private SessionManager session;
+    private TextView gameId;
     // Codes used to ask permissions
     private static final int PERM_GSM_CODE = 1;
     private static final int PERM_NETWORK_CODE = 2;
@@ -51,6 +54,8 @@ public class HiddenUserActivity extends AppCompatActivity {
 
     private static final String OpenCellIdToken = "ff4908e586f1b4";
     private final FirebaseFirestore db = FirebaseFirestore.getInstance();
+    private final String fireBaseUserCollectionName = "User";
+    private final String fireBaseGameCollectionName = "Game";
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
@@ -81,6 +86,7 @@ public class HiddenUserActivity extends AppCompatActivity {
 
         session = new SessionManager(getApplicationContext());
         session.createLoginSession(UserCategory.HIDDEN.toString());
+        mHandler = new Handler();
     }
 
     /**
@@ -90,9 +96,9 @@ public class HiddenUserActivity extends AppCompatActivity {
         @Override
         public void run() {
             try {
-                db.collection("User")
-                        .document(session.getUserDetails().get("userId"))
-                        .set(getLocation())
+                db.collection(fireBaseUserCollectionName)
+                        .document(gameId.toString())
+                        .set(getUserLocation())
                         .addOnSuccessListener(new OnSuccessListener<Void>() {
                     @Override
                     public void onSuccess(Void aVoid) {
@@ -124,6 +130,20 @@ public class HiddenUserActivity extends AppCompatActivity {
     }
 
     /**
+     * TODO : check if id is valid
+     * Start the game
+     * @param view
+     */
+    public void startHide(View view) {
+        gameId = findViewById(R.id.game_id);
+        Map hiddenUser = new HashMap<String, String>();
+        hiddenUser.put("userList", session.getUserDetails().get("userId"));
+        db.collection(fireBaseGameCollectionName).document(gameId.toString())
+                .set(hiddenUser);
+        startUpdatingLocation();
+    }
+
+    /**
      * Stop to run task periodically
      */
     private void stopUpdatingLocation() {
@@ -133,11 +153,6 @@ public class HiddenUserActivity extends AppCompatActivity {
     public void onDestroy() {
         super.onDestroy();
         stopUpdatingLocation();
-    }
-
-    public void start(View view) {
-        mHandler = new Handler();
-        startUpdatingLocation();
     }
 
     /**
@@ -269,7 +284,7 @@ public class HiddenUserActivity extends AppCompatActivity {
      * @throws ExecutionException
      * @throws InterruptedException
      */
-    private Map getLocation() throws JSONException, ExecutionException, InterruptedException {
+    private Map getUserLocation() throws JSONException, ExecutionException, InterruptedException {
         Radio radio = Radio.GSM;
         Context context = getApplicationContext();
         WifiInfo wifiInfos = getWifiInfo(context);
@@ -300,6 +315,9 @@ public class HiddenUserActivity extends AppCompatActivity {
         PostRequest postRequest = new PostRequest(url, request);
         ExecutorService service =  Executors.newSingleThreadExecutor();
         Future<JSONObject> future = service.submit(postRequest);
-        return PostRequest.jsonToMap(future.get());
+        Map userLocation = PostRequest.jsonToMap(future.get());
+        // Put user id in the map
+        userLocation.put("userId", Objects.requireNonNull(session.getUserDetails().get("userID")));
+        return userLocation;
     }
 }

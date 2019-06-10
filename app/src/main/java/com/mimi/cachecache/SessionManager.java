@@ -3,6 +3,9 @@ package com.mimi.cachecache;
 import android.content.Context;
 import android.content.SharedPreferences;
 
+import org.checkerframework.checker.nullness.compatqual.NonNullType;
+import org.jetbrains.annotations.NotNull;
+
 import java.util.HashMap;
 import java.util.UUID;
 
@@ -49,7 +52,7 @@ class SessionManager {
         // commit changes
         editor.commit();
     }
-
+    @NotNull
     public HashMap<String, String> getUserDetails() {
 
         HashMap<String, String> user = new HashMap<String, String>();

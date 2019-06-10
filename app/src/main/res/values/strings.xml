@@ -1,8 +1,13 @@
 <resources>
     <string name="app_name">CacheCache</string>
-    <string name="se_cacher">Se cacher</string>
-    <string name="chercher">Chercher</string>
-    <string name="comencer">Comencer !</string>
+    <string name="mainActivity_hideBtn_string">Se cacher</string>
+    <string name="findActivity_createGame_string">Créer une partie</string>
+    <string name="mainActivity_findBtn_string">Chercher</string>
+    <string name="hideActivity_startBtn_string">Je me cache !</string>
     <string name="ok">OK</string>
-    <string name="hideSmallExplanation">Entrez le numéro de la personne qui vous cherche :</string>
+    <string name="hideActivity_smallExplanation">Entrez le numéro de la personne qui vous cherche :</string>
+    <string name="finder_explanation">Vous êtes le chercheur !\npartagez ce code à tous les participants du cache cache</string>
+    <string name="hideActivity_editText_placeholder_string">Identifiant de partie</string>
+    <string name="hideActivity_stopBtn_string">Arrêter</string>
+    <string name="findActivity_searchBtn_string">Commencer la partie</string>
 </resources>

@@ -6,4 +6,38 @@
     android:layout_height="match_parent"
     tools:context=".FindActivity">
 
+    <TextView
+        android:id="@+id/game_id"
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:layout_marginTop="268dp"
+        android:text="TextView"
+        android:textSize="30sp"
+        app:layout_constraintEnd_toEndOf="parent"
+        app:layout_constraintStart_toStartOf="parent"
+        app:layout_constraintTop_toTopOf="parent" />
+
+    <TextView
+        android:id="@+id/finder_eplanation"
+        android:layout_width="198dp"
+        android:layout_height="89dp"
+        android:layout_marginBottom="48dp"
+        android:text="@string/finder_explanation"
+        android:textSize="18sp"
+        app:layout_constraintBottom_toTopOf="@+id/game_id"
+        app:layout_constraintEnd_toEndOf="parent"
+        app:layout_constraintHorizontal_bias="0.497"
+        app:layout_constraintStart_toStartOf="parent" />
+
+    <Button
+        android:id="@+id/startButton"
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:layout_marginTop="32dp"
+        android:onClick="startFind"
+        android:text="@string/findActivity_searchBtn_string"
+        app:layout_constraintEnd_toEndOf="parent"
+        app:layout_constraintHorizontal_bias="0.498"
+        app:layout_constraintStart_toStartOf="parent"
+        app:layout_constraintTop_toBottomOf="@+id/game_id" />
 </androidx.constraintlayout.widget.ConstraintLayout>
